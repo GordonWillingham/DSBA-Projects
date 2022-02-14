@@ -1,0 +1,506 @@
+﻿John Bushe
+Nyasia Bowens
+Jennings Hollifield
+Marianna Shaver
+Gordon Willingham        
+                6160 Final Project Report
+ 
+BSR Operational Data Store (ODS):
+ 
+·      Ran Docker and named the container
+·      Adding in reference table using is_active and countries.csv file
+·      Difficulties connecting the countries.csv to the bash shell on our Docker MariaDB
+·      Creating tables and specifying data types inside the BSR_ODS Database
+
+
+ 
+BSR Data Warehouse:
+ 
+·      Ran Docker and named the container
+·      Adding in reference table using products.csv file
+·      Difficulties connecting the countries.csv to the bash shell on our Docker MariaDB but were successful in adding product.csv.
+·      Creating tables and specifying data types inside the BSR_ODS Database
+·      Difficulties translating My SQL country information to the product table in the BSR_DW Database due to the bug correction in the rubric.
+
+
+
+
+# Copying .CSV data into Docker Container #
+
+
+docker cp Downloads/Countries.csv mariadbtest:tmp/Countries.csv
+# Copying Products.CSV data into Docker for BSR_DW Database  #
+
+
+docker cp Downloads/Countries.csv mariadbtest:tmp/Countries.csv
+
+
+# Importing Countries.csv into Table Countries #
+
+
+Database changed
+MariaDB [BSR_ODS]> EXIT
+Bye
+root@728e30035025:/# mysqlimport --user='root' --password='mypass' \
+> --fields-enclosed-by='"' --fields-terminated-by=0x2c \
+> --lines-terminated-by=0x0a --replace \
+> --columns='iso3166_country_num, iso3166_country_name, iso3166_alpha2_code' \
+> BSR_ODS '/tmp/Countries.csv'
+BSR_ODS.Countries: Records: 249  Deleted: 0  Skipped: 0  Warnings: 0
+root@728e30035025:/# mysql -u root -p
+Enter password: 
+
+
+
+
+
+
+
+
+MariaDB [(none)]> CREATE DATABASE BSR_ODS;
+Query OK, 1 row affected (0.001 sec)
+
+
+MariaDB [(none)]> USE BSR_ODS;
+Database changed
+MariaDB [BSR_ODS]> CREATE TABLE customers(
+    -> customer_id INT(10) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    -> name VARCHAR(255) NOT NULL,
+    -> date_added DATE NULL,
+    -> is_active BOOLEAN NOT NULL (TRUE),
+    -> date_inactivated DATE NOT NULL);
+ERROR 1064 (42000): You have an error in your SQL syntax; check the manual that corresponds to your MariaDB server version for the right syntax to use near '(TRUE),
+date_inactivated DATE NOT NULL)' at line 5
+MariaDB [BSR_ODS]> CREATE TABLE customers(
+    -> customer_id INT(10) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    -> name VARCHAR(255) NOT NULL,
+    -> date_added DATE NULL,
+    -> is_active BOOLEAN NOT NULL (TRUE),
+    -> date_inactivated DATE NOT NULL
+    -> );
+ERROR 1064 (42000): You have an error in your SQL syntax; check the manual that corresponds to your MariaDB server version for the right syntax to use near '(TRUE),
+date_inactivated DATE NOT NULL
+)' at line 5
+MariaDB [BSR_ODS]> CREATE TABLE customers(
+    -> customer_id INT(10) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    -> name VARCHAR(255) NOT NULL,
+    -> date_added DATE NULL,
+    -> is_active BOOLEAN NOT NULL DEFAULT (TRUE),
+    -> date_inactivated DATE NOT NULL);
+Query OK, 0 rows affected (0.012 sec)
+
+
+MariaDB [BSR_ODS]> CREATE TABLE customerlocations(
+    -> location_id INT(10) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    -> customer_id INT(10) NOT NULL,
+    -> country_id CHAR(3) NOT NULL,
+    -> date_added DATE NOT NULL,
+    -> is_activee BOOLEAN NOT NULL DEFAULT (TRUE),
+    -> date_inactivated DATE NULL
+    -> );
+Query OK, 0 rows affected (0.015 sec)
+
+
+MariaDB [BSR_ODS]> CREATE TABLE addresstypes(
+    -> address_type_id INT(10) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    -> name VARCHAR(255) NOT NULL
+    -> );
+Query OK, 0 rows affected (0.014 sec)
+
+
+MariaDB [BSR_ODS]> CREATE TABLE customerlocationaddresses(
+    -> customer_location_address_id INT(10) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    -> location_id INT(10) NOT NULL,
+    -> address_type_id INT(10) NOT NULL,
+    -> attn_ref VARCHAR(255) NULL,
+    -> street1 VARCHAR(255) NOT NULL,
+    -> street2 VARCHAR(255) NULL,
+    -> street3 VARCHAR(255) NULL,
+    -> city VARCHAR(255) NOT NULL,
+    -> state_region VARCHAR(255) NOT NULL,
+    -> postal_code VARCHAR(255) NOT NULL
+    -> );
+Query OK, 0 rows affected (0.015 sec)
+
+
+MariaDB [BSR_ODS]> CREATE TABLE Countries (
+    -> iso3166_country_num CHAR(3) PRIMARY KEY,
+    -> iso3166_country_name VARCHAR(255) NOT NULL,
+    -> iso3166_alpha2_code CHAR(2) NOT NULL,
+    -> date_added DATE NOT NULL DEFAULT (CURRENT_DATE),
+    -> is_active BOOLEAN NOT NULL DEFAULT (TRUE),
+    -> date_inactivated DATE
+    -> );
+Query OK, 0 rows affected (0.018 sec)
+
+
+MariaDB [BSR_ODS]> CREATE TABLE countrycurrencies(
+    -> currency_id INT(10) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    -> country_id CHAR(3) NOT NULL,
+    -> name VARCHAR(255) NOT NULL,
+    -> abbreviation CHAR(3) NOT NULL,
+    -> iso4217_number char(3) NOT NULL,
+    -> decimal_parts INT(10) NOT NULL,
+    -> date_added DATE NOT NULL,
+    -> is_active BOOLEAN NOT NULL DEFAULT (TRUE),
+    -> date_inactivated DATE NULL
+    -> );
+Query OK, 0 rows affected (0.016 sec)
+
+
+MariaDB [BSR_ODS]> CREATE TABLE salesorders (
+    -> sales_order_id INT(10) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    -> order_currency_id INT(10) NOT NULL,
+    -> ordering_location_id INT(10) NOT NULL,
+    -> customer_purchase_order_red VARCHAR(255) NULL,
+    -> order_date DATE NOT NULL,
+    -> date_added DATE NOT NULL,
+    -> is_cancelled BOOLEAN NOT NULL,
+    -> date_cancelled DATE NULL,
+    -> is_complete BOOLEAN NOT NULL,
+    -> date_complete DATE NULL
+    -> );
+Query OK, 0 rows affected (0.010 sec)
+
+
+MariaDB [BSR_ODS]> CREATE TABLE salesorderaddresses(
+    -> sales_order_address_id INT(10) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    -> customer_location_address_id INT(10) NOT NULL,
+    -> sales_order_id INT(10) NOT NULL,
+    -> address_type_id INT(10) NOT NULL
+    -> );
+Query OK, 0 rows affected (0.012 sec)
+
+
+MariaDB [BSR_ODS]> CREATE TABLE salesorderlines(
+    -> line_id INT(10) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    -> sales_order_id INT(10) NULL,
+    -> quantity INT(10) NOT NULL,
+    -> product_pricing_id INT(10) NULL
+    -> );
+Query OK, 0 rows affected (0.014 sec)
+
+
+MariaDB [BSR_ODS]> CREATE TABLE productcountrypricing(
+    -> product_pricing_id INT(10) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    -> product_id INT(10) NOT NULL,
+    -> currency_id INT(10) NOT NULL,
+    -> unit_price INT(10) NOT NULL,
+    -> date_added DATE NOT NULL,
+    -> is_active BOOLEAN NOT NULL DEFAULT (TRUE),
+    -> date_inactived DATE NULL
+    -> );
+Query OK, 0 rows affected (0.013 sec)
+
+
+# Displaying data imported data into Countries table #
+
+
+Database changed
+MariaDB [BSR_ODS]> SELECT * FROM Countries
+    -> ;
++---------------------+------------------------------------------------------------+---------------------+------------+-----------+------------------+
+| iso3166_country_num | iso3166_country_name                                       | iso3166_alpha2_code | date_added | is_active | date_inactivated |
++---------------------+------------------------------------------------------------+---------------------+------------+-----------+------------------+
+| 004                 | Afghanistan                                                | AF                  | 2021-12-15 |         1 | NULL             |
+| 008                 | Albania                                                    | AL                  | 2021-12-15 |         1 | NULL             |
+| 010                 | Antarctica                                                 | AQ                  | 2021-12-15 |         1 | NULL             |
+| 012                 | Algeria                                                    | DZ                  | 2021-12-15 |         1 | NULL             |
+| 016                 | American Samoa                                             | AS                  | 2021-12-15 |         1 | NULL             |
+| 020                 | Andorra                                                    | AD                  | 2021-12-15 |         1 | NULL             |
+| 024                 | Angola                                                     | AO                  | 2021-12-15 |         1 | NULL             |
+| 028                 | Antigua and Barbuda                                        | AG                  | 2021-12-15 |         1 | NULL             |
+| 031                 | Azerbaijan                                                 | AZ                  | 2021-12-15 |         1 | NULL             |
+| 032                 | Argentina                                                  | AR                  | 2021-12-15 |         1 | NULL             |
+| 036                 | Australia                                                  | AU                  | 2021-12-15 |         1 | NULL             |
+| 040                 | Austria                                                    | AT                  | 2021-12-15 |         1 | NULL             |
+| 044                 | Bahamas (the)                                              | BS                  | 2021-12-15 |         1 | NULL             |
+| 048                 | Bahrain                                                    | BH                  | 2021-12-15 |         1 | NULL             |
+…..
+….
+
+
+# Creation of BSR_DW Database and corresponding tables # 
+
+
+root@728e30035025:/# /# mysql -u root -p
+bash: /#: No such file or directory
+root@728e30035025:/# mysql -u root -p   
+Enter password: 
+Welcome to the MariaDB monitor.  Commands end with ; or \g.
+Your MariaDB connection id is 19
+Server version: 10.4.21-MariaDB-1:10.4.21+maria~focal mariadb.org binary distribution
+
+
+Copyright (c) 2000, 2018, Oracle, MariaDB Corporation Ab and others.
+
+
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+
+
+
+
+# Creation of BSR_DW Database and Tables #
+
+
+MariaDB [(none)]> CREATE DATABASE BSR_DW
+    -> ;
+Query OK, 1 row affected (0.019 sec)
+
+
+MariaDB [(none)]> USE BSR_DW
+Database changed
+MariaDB [BSR_DW]> CREATE TABLE YearDimension(       
+    -> year_key INT(10) PRIMARY KEY, 
+    -> year_value INT(10) UNIQUE KEY);
+Query OK, 0 rows affected (0.113 sec)
+
+
+MariaDB [BSR_DW]> CREATE TABLE WeekOfYearDimensions(
+    -> week_of_year_key INT10 PRIMARY KEY,
+    -> week_of_year_value INT(10) UNIQUE KEY);
+ERROR 1064 (42000): You have an error in your SQL syntax; check the manual that corresponds to your MariaDB server version for the right syntax to use near 'PRIMARY KEY,
+week_of_year_value INT(10) UNIQUE KEY)' at line 2
+MariaDB [BSR_DW]> CREATE TABLE WeekOfYearDimensions(
+    -> week_of_year_key INT(10) PRIMARY KEY,
+    -> week_of_year_value INT(10) UNIQUE KEY);
+Query OK, 0 rows affected (0.020 sec)
+
+
+MariaDB [BSR_DW]> CREATE TABLE MonthOfYearDimension( 
+    -> month_of_year_key INT(10) PRIMARY KEY,
+    -> month_key_name VARCHAR(255) NOT NULL);
+Query OK, 0 rows affected (0.018 sec)
+
+
+MariaDB [BSR_DW]> CREATE TABLE DayOfMonthDimension(
+    -> day_of_month_key INT(10) PRIMARY KEY,
+    -> day_of_month_value INT(10) NOT NULL);
+Query OK, 0 rows affected (0.018 sec)
+
+
+MariaDB [BSR_DW]> CREATE TABLE DayOfWeekDimension(
+    -> day_of_week_key INT(10) PRIMARY KEY,
+    -> day_of_week_value VARCHAR(255) UNIQUE KEY);
+Query OK, 0 rows affected (0.018 sec)
+
+
+MariaDB [BSR_DW]> CREATE TABLE TimeDimension(
+    -> time_key INT(10) PRIMARY KEY,
+    -> date_value DATE UNIQUE KEY,
+    -> date_text  VARCHAR(255) UNIQUE KEY,
+    -> year_key INT(10),
+    -> week_of_year_key INT(10),
+    -> month_of_year_key INT(10), 
+    -> day_of_month_key INT(10),
+    -> day_of_year_key INT(10) NOT NULL);
+Query OK, 0 rows affected (0.022 sec)
+
+
+MariaDB [BSR_DW]> CREATE TABLE CurrencyConversion(
+    -> valuation_date DATE PRIMARY KEY,
+    -> source_currency_abbreviation CHAR(3),
+    -> target_currency_abbreviation CHAR(3),
+    -> conversion_rate DOUBLE NOT NULL);
+Query OK, 0 rows affected (0.018 sec)
+
+
+MariaDB [BSR_DW]> CREATE TABLE ProductDimension(
+    -> product_key INT(10) PRIMARY KEY,
+    -> product_name VARCHAR(255) NOT NULL);
+Query OK, 0 rows affected (0.016 sec)
+
+
+MariaDB [BSR_DW]> CREATE TABLE BSRFactTable(
+    -> time_key INT(10) PRIMARY KEY,
+    -> country_key INT(10), 
+    -> product_key INT(10),
+    -> qty_sold INT(10), 
+    -> sales_value DOUBLE NOT NULL);
+Query OK, 0 rows affected (0.021 sec)
+
+
+MariaDB [BSR_DW]> CREATE TABLE CountryDimension(
+    -> country_key INT(10) PRIMARY KEY,
+    -> country_name  VARCHAR(255) UNIQUE KEY);
+Query OK, 0 rows affected (0.017 sec)
+
+
+MariaDB [BSR_DW]> CREATE TABLE Products( 
+    -> product_id INT(10) NOT NULL PRIMARY KEY AUTO_INCREMENT,
+    -> name VARCHAR(255) NOT NULL,
+    -> description VARCHAR(1000) NULL,
+    -> date_added DATE NOT NULL DEFAULT (CURRENT_DATE),
+    -> is_active BOOLEAN NOT NULL DEFAULT (TRUE),
+    -> date_inactivated DATE NULL);
+Query OK, 0 rows affected (0.024 sec)
+
+
+MariaDB [BSR_DW]> EXIT
+Bye
+
+
+root@728e30035025:/# mysqlimport --user='root' --password='mypass' \
+> --fields-enclosed-by='"' --fields-terminated-by=0x2c \
+> --lines-terminated-by=0x0a --replace \
+> --columns='name, description' \
+> BSR_DW '/tmp/Products.csv'
+BSR_DW.Products: Records: 6  Deleted: 0  Skipped: 0  Warnings: 0
+root@728e30035025:/# mysql -u root -p
+Enter password: 
+Welcome to the MariaDB monitor.  Commands end with ; or \g.
+Your MariaDB connection id is 21
+Server version: 10.4.21-MariaDB-1:10.4.21+maria~focal mariadb.org binary distribution
+
+
+Copyright (c) 2000, 2018, Oracle, MariaDB Corporation Ab and others.
+
+
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+
+
+MariaDB [(none)]> USE BSR_DW
+Reading table information for completion of table and column names
+You can turn off this feature to get a quicker startup with -A
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Displaying Data Imported from Products.csv into Products Table #
+
+
+Database changed
+MariaDB [BSR_DW]> SELECT * FROM Products
+    -> ;
++------------+-----------------------------+-------------------------------------------------+------------+-----------+------------------+
+| product_id | name                        | description                                     | date_added | is_active | date_inactivated |
++------------+-----------------------------+-------------------------------------------------+------------+-----------+------------------+
+|          1 | Arm - Articulating - 1m     | Articulating 6DOF Arm - 1 meter reach           | 2021-12-15 |         1 | NULL             |
+|          2 | Arm - Articulating - 1.5m   |  "Articulating 6DOF Arm - 1.5 meter reach"      | 2021-12-15 |         1 | NULL             |
+|          3 | Manipulator - Grasp - 10 cm |  "Grasping Manipulator - 10 cm capacity"        | 2021-12-15 |         1 | NULL             |
+|          4 | Manipulator - 2 axis Grasp  |  "2-Axis Grasping Manipulator"                  | 2021-12-15 |         1 | NULL             |
+|          5 | Vision Module               |  "Vision module for Articulating Arms"          | 2021-12-15 |         1 | NULL             |
+|          6 | Mounting Base - 600 mm      |  "Mounting Base for Articulating Arms - 600 mm" | 2021-12-15 |         1 | NULL             |
++------------+-----------------------------+-------------------------------------------------+------------+-----------+------------------+
+6 rows in set (0.013 sec)
+
+
+# Displaying Databases #
+
+
+MariaDB [BSR_DW]> SHOW DATABASES;
++--------------------+
+| Database           |
++--------------------+
+| BSR                |
+| BSR_DW             |
+| BSR_ODS            |
+| information_schema |
+| mysql              |
+| performance_schema |
++--------------------+
+6 rows in set (0.001 sec)
+
+
+# Copying Dummy data CSV files into our container - Productcountrypricing, salesorders, customerlocationaddresses, and customers #
+
+
+gwillingham-pro:~ gwillingham$ docker cp Downloads/customers.csv mariadbtest:tmp/customers.csv
+gwillingham-pro:~ gwillingham$ docker cp Downloads/customerlocationaddresses.csv mariadbtest:tmp/customerlocationaddresses.csv
+gwillingham-pro:~ gwillingham$ docker cp Downloads/salesorders.csv mariadbtest:tmp/salesorders.csv
+gwillingham-pro:~ gwillingham$ docker cp Downloads/productcountrypricing.csv mariabtest:tmp/productcountrypricing.csv
+Error: No such container:path: mariabtest:tmp
+gwillingham-pro:~ gwillingham$ docker cp Downloads/productcountrypricing.csv mariadbtest:tmp/productcountrypricing.csv
+
+
+
+
+
+
+
+
+
+
+# Importing Customers.csv Dummy Data into Customers Table #
+
+
+mysqlimport --user='root' --password='mypass' \
+> --fields-enclosed-by='"' --fields-terminated-by=0x2c \
+> --lines-terminated-by='\r\n' --replace \
+> --columns='name' \
+> BSR_ODS '/tmp/customers.csv'
+BSR_ODS.customers: Records: 20  Deleted: 0  Skipped: 0  Warnings: 1
+
+
+# SQL Queries we ran to extract & transform the dimension tables. #
+
+
+SELECT
+PCP. product_id, PCP.currency_id, PCP.unit_price,
+SO.order_date,
+SOL.sales_order_id, SOL.quantity,
+C.iso3166_country_num, C.iso3166_country_name, C.iso3166_alpha2_code,
+BS.product_key, BS.qty_sold, BS.sales_value,
+CC.valuation_date, CC.source_currency_abbreviation, CC.target_currency_abbreviation, CC.conversion_rate,
+TD.date_value, TD.year_key, TD.week_of_year, TD.month_of_year_key, TD.month_of_year_key, TD.day_of_month_key, TD.day_of_week_key,
+CoC.abbreviation, COC.currency_id
+FROM BSR_ODS.ProductCountryPricing PCP
+JOIN BSR_ODS.SalesOrderLines SOL
+ON PCP.product_pricing_id = SOL.product_pricing_id
+JOIN BSR_ODS.Countries C
+ON C.iso3166_country_num = PCP.currency_id
+JOIN BSR_DW.BSRFactTable BS
+ON PCP.product_id = BS.product_key
+JOIN BSR_ODS.SalesOrder SO
+ON SO.order_date = CC.valuation_date
+JOIN BSR_DW.CurrencyConversion CC
+ON PCP.currency_id = CC.source_currency_abbreviation
+JOIN BSR_ODS.CountryCurrencies CoC
+ON CoC.currency_id = PCP.currency_id
+JOIN BSR_DW.TimeDimension TD
+ON TD.date_value = CC.valuation_date;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#Final Thoughts#
+
+
+Could not import all of the dummy data needed in the BSR_ODS database. This failure prevented us from transforming the data and inserting it into the BSR_DW database.  In the future, we would ideally succeed in the import process of all the relevant tables, we succeeded when importing tables with a single column, however, we struggled with dummy data CSVs with multiple columns. 
+
+
+
+
+
+
+We struggled to draft the queries needed to transform the data. To address this issue we attended class and brainstormed with the overall class to draft a series of queries that would ideally extract and transform the data from the BSR_ODS into the BSR_DW. Additionally, we collectively struggled to consolidate working code into a single container. Each of our teammates had functional codes working in their individual devices, which were siloed and needed to be collected & operational in one device.
